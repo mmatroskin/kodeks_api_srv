@@ -1,0 +1,9 @@
+# Python byte code
+*.pyc
+
+# Dirs
+/.idea
+/venv
+
+# Files
+/main_app/log.txt
