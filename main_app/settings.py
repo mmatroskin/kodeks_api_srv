@@ -2,22 +2,20 @@ from pathlib import Path
 from shared import DocType
 
 
-SRV_HOST = '127.0.0.1'
-SRV_PORT = '5001'
-HEADERS = {
-    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:71.0) Gecko/20100101 Firefox/71.0',
-    'accept': '*/*'
-}
-BASE_URL = r'http://docs.cntd.ru'
-HOST = r'http://newapi.kodeks.ru'
+# kodeks api settings
+BASE_URL = r'http://newapi.kodeks.ru'
+HOST = r'http://docs.cntd.ru'
+
 SEARCH_URL_BASE = r'/search/intelectual2/q/'
 SEARCH_URL_TYPE = r'/r/'
 SEARCH_URL_OFFSET = r'/offset/'
 SEARCH_URL_SITE = r'/site=tehexpert'
+
 DOC_URL_XML = r'/document/fullcontent/id/'      # xml (info + text)
 DOC_URL_HTML = r'/document/html/id/'      # html
 DOC_URL_JSON = r'/chapter/get/document_id/'     # json
 DOCTOC_URL = r'/document/getdoctoc/id/'     # json
+
 DOC_TYPES = {
     '4': DocType('4', 'Нормы, правила, стандарты'),
     '10': DocType('10', 'Технические описания'),
@@ -25,6 +23,12 @@ DOC_TYPES = {
     '12': DocType('12', 'Типовая проектная документация'),
     '13': DocType('13', 'Все'),
 }
+
+# parameter for offset (=20)
 ITEMS_ON_RESULTS = 20
+
+# other settings
 ROOT_DIR = Path(__file__).resolve().parent
+CONFIG = 'app.ini'
+REQUESTS_CONFIG = 'requests.ini'
 LOG_FILE = 'log.txt'

@@ -1,11 +1,20 @@
 import json
 import requests
 from os.path import join
-from settings import SRV_HOST, SRV_PORT, ROOT_DIR
+import configparser
+from settings import ROOT_DIR, CONFIG
 
 
 def test():
+    config_path = join(ROOT_DIR, CONFIG)
+    config = configparser.ConfigParser()
+    config.read(config_path)
+
+    SRV_HOST = config.get("server", "host")
+    SRV_PORT = config.get("server", "port")
+
     search_string = 'Полы'
+
     url_base = f'http://{SRV_HOST}:{str(SRV_PORT)}'
     result_info = requests.get(url_base, headers=None, params=None)
     if result_info.status_code == 200:

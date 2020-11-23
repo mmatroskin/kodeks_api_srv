@@ -2,8 +2,9 @@ from os.path import join
 import json
 from aiohttp import web
 from main_app.app_log import get_logger
-from main_app.settings import ROOT_DIR, LOG_FILE, HEADERS, HOST, BASE_URL, DOC_URL_JSON, DOCTOC_URL, \
+from main_app.settings import ROOT_DIR, LOG_FILE, HOST, BASE_URL, DOC_URL_JSON, DOCTOC_URL, \
     DOC_TYPES, SEARCH_URL_BASE, SEARCH_URL_TYPE, SEARCH_URL_OFFSET, SEARCH_URL_SITE, ITEMS_ON_RESULTS
+from .config import HEADERS
 from parsers.SearchSrv import SearchSrv
 from parsers.DocItem import DocItem
 from request_srv.request_srv import get_data
@@ -20,34 +21,44 @@ class CustomView(web.View):
             'data': None
         }
 
-    def save_log(self):
+    def save_log(self, action, info=None):
         success = 'Success' if self.result['success'] else 'Error'
-        self.log.info(f'action: get_doc, success: {success}')
+        self.log.info(f'action: {action}, info: {info}, success: {success}')
 
 
 class InfoView(CustomView):
 
     async def get(self):
-        self.result['success'] = True
-        self.result['message'] = 'Success'
-        self.result['data'] = DOC_TYPES
-        response = web.json_response(self.result)
-        return response
+        try:
+            self.result['success'] = True
+            self.result['message'] = 'Success'
+            self.result['data'] = DOC_TYPES
+        except Exception:
+            self.log.error("Exception", exc_info=True)
+            self.result['message'] = 'Internal error!'
+        finally:
+            self.save_log('start')
+            response = web.json_response(self.result)
+            return response
 
 
 class DocView(CustomView):
 
     async def post(self):
-        post = await self.request.json()
-        data = dict(post)
-        if data is not None:
-            result = await self._get_document(data)
-            self.result = result
-
-        self.save_log()
-
-        response = web.json_response(self.result)
-        return response
+        doc_id = ''
+        try:
+            post = await self.request.json()
+            data = dict(post)
+            if data is not None:
+                doc_id = data.get('id')
+                result = await self._get_document(data)
+                self.result = result
+        except Exception:
+            self.log.error("Exception", exc_info=True)
+        finally:
+            self.save_log('get_doc', f'id={doc_id}')
+            response = web.json_response(self.result)
+            return response
 
     async def _get_document(self, doc_info):
         result = {
@@ -85,22 +96,20 @@ class DocView(CustomView):
 class SearchView(CustomView):
 
     async def get(self):
-        self.result['message'] = 'Неверный зарос'
+        params = self.request.rel_url.query
+        data = dict(params)
+        type = data.get('type', 'all')
+        query = data.get('query')
+        offset = data.get('offset')
         try:
-            params = self.request.rel_url.query
-            data = dict(params)
-            type = data.get('type', 'all')
-            query = data.get('query')
-            offset = data.get('offset')
             if offset is None or not offset.isdigit():
                 offset = 0
             result = await self._search(query, type, offset)
             self.result = result
-
-            self.save_log()
         except Exception as e:
             self.log.error("Exception", exc_info=True)
         finally:
+            self.save_log('search', f'query={query}')
             response = web.json_response(self.result)
             return response
 
@@ -108,7 +117,7 @@ class SearchView(CustomView):
     async def _search(query, type, offset):
         result = {
             'success': False,
-            'message': 'Кодекс болеет :('
+            'message': 'Кодекс инфой не делится :('
         }
         doc_type = DOC_TYPES.get(type)
         url = f'{HOST}{SEARCH_URL_BASE}{query}{SEARCH_URL_TYPE}{doc_type.id}{SEARCH_URL_OFFSET}{str(offset)}{SEARCH_URL_SITE}'
@@ -117,4 +126,3 @@ class SearchView(CustomView):
             srv = SearchSrv()
             result = srv.get_search_results(text=data_item.data, offset=offset, delta=ITEMS_ON_RESULTS)
         return result
-
