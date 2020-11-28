@@ -9,8 +9,8 @@ class SearchSrv():
     def __init__(self):
         self.log = get_logger(join(ROOT_DIR, LOG_FILE), __name__)
 
-    def get_search_results(self, **data):
-        result = {'success': True, 'message': 'Success'}
+    def get_search_results(self, msg_error, msg_success, **data):
+        result = {'success': False, 'message': msg_error}
         try:
             dom = parseString(data.get('text'))
             node_list = dom.getElementsByTagName('document')
@@ -25,8 +25,9 @@ class SearchSrv():
             ret['count'] = count
             ret['offset'] = offset_next if count > offset_next else None
             result['data'] = ret
+            result['success'] = True
+            result['message'] = msg_success
         except Exception as e:
-            result['success'] = False
             result['message'] = str(e)
             self.log.error("Exception", exc_info=True)
         return result

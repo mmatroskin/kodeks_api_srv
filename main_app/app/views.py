@@ -3,9 +3,9 @@ import json
 from aiohttp import web
 from main_app.app_log import get_logger
 from main_app.shared import user_agent
-from main_app.settings import ROOT_DIR, LOG_FILE, EXT_URL, BASE_URL, DOC_URL_JSON, DOCTOC_URL, \
-    DOC_TYPES, SEARCH_URL_BASE, SEARCH_URL_TYPE, SEARCH_URL_OFFSET, SEARCH_URL_SITE, ITEMS_ON_RESULTS
-from .config import HEADERS
+from main_app.settings import ROOT_DIR, LOG_FILE, EXT_URL, BASE_URL, DOC_URL_JSON, DOCTOC_URL, DOC_TYPES, \
+    SEARCH_URL_BASE, SEARCH_URL_TYPE, SEARCH_URL_OFFSET, SEARCH_URL_SITE, ITEMS_ON_RESULTS
+from .config import HEADERS, MESSAGE_SUCCESS, MESSAGE_ERROR, MESSAGE_404, MESSAGE_BAD_QUERY
 from parsers.SearchSrv import SearchSrv
 from parsers.DocItem import DocItem
 from request_srv.request_srv import get_data
@@ -18,7 +18,7 @@ class CustomView(web.View):
         self.log = get_logger(join(ROOT_DIR, LOG_FILE), __name__)
         self.result = {
             'success': False,
-            'message': 'Неверный запрос',
+            'message': MESSAGE_BAD_QUERY,
             'data': None
         }
 
@@ -36,7 +36,7 @@ class CustomView(web.View):
         return headers
 
     def save_log(self, action, info=None):
-        success = 'Success' if self.result['success'] else 'Error'
+        success = MESSAGE_SUCCESS if self.result['success'] else MESSAGE_ERROR
         self.log.info(f'action: {action}, info: {info}, success: {success}')
 
 
@@ -49,7 +49,7 @@ class InfoView(CustomView):
         info = None
         try:
             self.result['success'] = True
-            self.result['message'] = 'Success'
+            self.result['message'] = MESSAGE_SUCCESS
             query = data.get('query')
             if query is None:
                 self.result['data'] = DOC_TYPES
@@ -59,7 +59,7 @@ class InfoView(CustomView):
                 info = f'query={query}'
         except Exception:
             self.log.error("Exception", exc_info=True)
-            self.result['message'] = 'Internal error!'
+            self.result['message'] = f'{MESSAGE_ERROR}: Internal error!'
         finally:
             self.save_log(action, info=info)
             response = web.json_response(self.result)
@@ -100,9 +100,9 @@ class DocView(CustomView):
 
     async def _get_document(self, input_data):
         result = {
-            'status': 404,
+            'status': None,
             'success': False,
-            'message': 'Ничего нет :(',
+            'message': MESSAGE_BAD_QUERY,
         }
         try:
             headers = self._get_request_headers(input_data.get('headers'))
@@ -110,23 +110,28 @@ class DocView(CustomView):
             doc_id = query.get('id')
             doc_name = query.get('name')
             if doc_id is not None:
-                url = f'{BASE_URL}{DOC_URL_JSON}{doc_id}'
-                resp = await get_data(url, headers)
-                if resp.status == 200:
-                    document = DocItem(query)
-                    data = json.loads(resp.data)
-                    html_data = data.get('html')
-                    if html_data:
-                        template = join(ROOT_DIR, r'templates/doc_template.html')
-                        url = f'{BASE_URL}{DOCTOC_URL}{doc_id}'
-                        resp = await get_data(url, headers)
-                        doctoc_data_item = json.loads(resp.data)
-                        doctoc_html_data = doctoc_data_item.get('doctoc')
-                        document.fill_body(template=template, content=html_data, doctoc=doctoc_html_data, ext_url=EXT_URL)
+                document = DocItem(query)
+                if not query.get('is_available'):
+                    result['message'] = document.message
+                else:
+                    url = f'{BASE_URL}{DOC_URL_JSON}{doc_id}'
+                    resp = await get_data(url, headers)
+                    result['message'] = MESSAGE_404
                     result['status'] = resp.status
-                    result['success'] = True
-                    result['message'] = 'Success'
-                    result['data'] = {'id': doc_id, 'name': doc_name, 'html': document.html}
+                    if resp.status == 200:
+                        data = json.loads(resp.data)
+                        html_data = data.get('html')
+                        if html_data:
+                            template = join(ROOT_DIR, r'templates/doc_template.html')
+                            url = f'{BASE_URL}{DOCTOC_URL}{doc_id}'
+                            resp = await get_data(url, headers)
+                            doctoc_data_item = json.loads(resp.data)
+                            doctoc_html_data = doctoc_data_item.get('doctoc')
+                            document.fill_body(template=template, content=html_data,
+                                               doctoc=doctoc_html_data, ext_url=EXT_URL)
+                        result['success'] = True
+                        result['message'] = MESSAGE_SUCCESS
+                        result['data'] = {'id': doc_id, 'name': doc_name, 'html': document.html}
         except Exception as e:
             result['message'] = str(e)
             self.log.error("Exception", exc_info=True)
@@ -168,15 +173,17 @@ class SearchView(CustomView):
     async def _search(self, query, type, offset, params):
         result = {
             'success': False,
-            'message': 'Кодекс инфой не делится :('
+            'message': MESSAGE_404
         }
         doc_type = DOC_TYPES.get(type)
         headers = self._get_request_headers(params)
 
-        url = f'{BASE_URL}{SEARCH_URL_BASE}{query}{SEARCH_URL_TYPE}{doc_type.id}{SEARCH_URL_OFFSET}{str(offset)}{SEARCH_URL_SITE}'
+        url = f'{BASE_URL}{SEARCH_URL_BASE}{query}{SEARCH_URL_TYPE}{doc_type.id}{SEARCH_URL_OFFSET}' \
+            f'{str(offset)}{SEARCH_URL_SITE}'
         data_item = await get_data(url, headers)
         if data_item.status == 200:
             srv = SearchSrv()
-            result = srv.get_search_results(text=data_item.data, offset=offset, delta=ITEMS_ON_RESULTS)
+            result = srv.get_search_results(MESSAGE_ERROR, MESSAGE_SUCCESS, text=data_item.data,
+                                            offset=offset, delta=ITEMS_ON_RESULTS)
             result['headers'] = data_item.headers
         return result
