@@ -21,7 +21,7 @@ class SearchSrv():
             if len(tmp) > 0:
                 count_node = tmp[-1]
                 count = int(self._get_node_data(count_node))
-            offset_next = int(data.get('offset')) + data.get('delta')
+            offset_next = data.get('offset') + data.get('delta')
             ret['count'] = count
             ret['offset'] = offset_next if count > offset_next else None
             result['data'] = ret

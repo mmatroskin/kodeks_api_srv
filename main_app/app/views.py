@@ -2,7 +2,8 @@ from os.path import join
 import json
 from aiohttp import web
 from main_app.app_log import get_logger
-from main_app.settings import ROOT_DIR, LOG_FILE, HOST, BASE_URL, DOC_URL_JSON, DOCTOC_URL, \
+from main_app.shared import user_agent
+from main_app.settings import ROOT_DIR, LOG_FILE, EXT_URL, BASE_URL, DOC_URL_JSON, DOCTOC_URL, \
     DOC_TYPES, SEARCH_URL_BASE, SEARCH_URL_TYPE, SEARCH_URL_OFFSET, SEARCH_URL_SITE, ITEMS_ON_RESULTS
 from .config import HEADERS
 from parsers.SearchSrv import SearchSrv
@@ -21,6 +22,19 @@ class CustomView(web.View):
             'data': None
         }
 
+    @staticmethod
+    def _get_request_headers(params):
+        headers = HEADERS
+        if params is not None:
+            headers['User-Agent'] = params.get('User-Agent')
+            cookie = params.get('Cookie')
+            if cookie is not None:
+                headers['Cookie'] = cookie
+        else:
+            ua = user_agent.random
+            headers['User-Agent'] = ua
+        return headers
+
     def save_log(self, action, info=None):
         success = 'Success' if self.result['success'] else 'Error'
         self.log.info(f'action: {action}, info: {info}, success: {success}')
@@ -29,28 +43,52 @@ class CustomView(web.View):
 class InfoView(CustomView):
 
     async def get(self):
+        params = self.request.rel_url.query
+        data = dict(params)
+        action = 'start'
+        info = None
         try:
             self.result['success'] = True
             self.result['message'] = 'Success'
-            self.result['data'] = DOC_TYPES
+            query = data.get('query')
+            if query is None:
+                self.result['data'] = DOC_TYPES
+            else:
+                self.result['data'] = self._get_help()
+                action = 'help'
+                info = f'query={query}'
         except Exception:
             self.log.error("Exception", exc_info=True)
             self.result['message'] = 'Internal error!'
         finally:
-            self.save_log('start')
+            self.save_log(action, info=info)
             response = web.json_response(self.result)
             return response
+
+    @staticmethod
+    def _get_help():
+        file = join(ROOT_DIR, r'templates/help.txt')
+        with open(file, 'r', encoding='utf-8') as fh:
+            content = fh.readlines()
+        return content
 
 
 class DocView(CustomView):
 
     async def post(self):
+        """
+        post: JSON
+            query: document info (id, name, etc) - from result of search query
+            headers: User-Agent, Cookie
+        :return: JSON
+        """
         doc_id = ''
         try:
             post = await self.request.json()
+            headers = self.request.headers
             data = dict(post)
             if data is not None:
-                doc_id = data.get('id')
+                doc_id = data.get('query').get('id')
                 result = await self._get_document(data)
                 self.result = result
         except Exception:
@@ -60,32 +98,35 @@ class DocView(CustomView):
             response = web.json_response(self.result)
             return response
 
-    async def _get_document(self, doc_info):
+    async def _get_document(self, input_data):
         result = {
             'status': 404,
             'success': False,
             'message': 'Ничего нет :(',
         }
         try:
-            doc_id = doc_info.get('id')
+            headers = self._get_request_headers(input_data.get('headers'))
+            query = input_data.get('query')
+            doc_id = query.get('id')
+            doc_name = query.get('name')
             if doc_id is not None:
-                url = f'{HOST}{DOC_URL_JSON}{doc_id}'
-                resp = await get_data(url, HEADERS)
+                url = f'{BASE_URL}{DOC_URL_JSON}{doc_id}'
+                resp = await get_data(url, headers)
                 if resp.status == 200:
-                    document = DocItem(doc_info)
+                    document = DocItem(query)
                     data = json.loads(resp.data)
                     html_data = data.get('html')
                     if html_data:
                         template = join(ROOT_DIR, r'templates/doc_template.html')
-                        url = f'{HOST}{DOCTOC_URL}{doc_id}'
-                        resp = await get_data(url, HEADERS)
+                        url = f'{BASE_URL}{DOCTOC_URL}{doc_id}'
+                        resp = await get_data(url, headers)
                         doctoc_data_item = json.loads(resp.data)
                         doctoc_html_data = doctoc_data_item.get('doctoc')
-                        document.fill_body(template=template, content=html_data, doctoc=doctoc_html_data, ext_url=BASE_URL)
+                        document.fill_body(template=template, content=html_data, doctoc=doctoc_html_data, ext_url=EXT_URL)
                     result['status'] = resp.status
                     result['success'] = True
                     result['message'] = 'Success'
-                    result['data'] = {'id': doc_id, 'html': document.html}
+                    result['data'] = {'id': doc_id, 'name': doc_name, 'html': document.html}
         except Exception as e:
             result['message'] = str(e)
             self.log.error("Exception", exc_info=True)
@@ -95,16 +136,27 @@ class DocView(CustomView):
 
 class SearchView(CustomView):
 
-    async def get(self):
-        params = self.request.rel_url.query
-        data = dict(params)
-        type = data.get('type', 'all')
+    async def post(self):
+        """
+        post: JSON
+            type: document type,
+            query: string,
+            offset: offset API parameter, default: 0
+            headers: User-Agent, Cookie
+        :return: JSON
+        """
+
+        post = await self.request.json()
+        headers = dict(self.request.headers)
+        data = dict(post)
+        doc_type = data.get('type', 'all')
         query = data.get('query')
         offset = data.get('offset')
+        params = data.get('headers')
         try:
-            if offset is None or not offset.isdigit():
+            if offset is None:
                 offset = 0
-            result = await self._search(query, type, offset)
+            result = await self._search(query, doc_type, offset, params)
             self.result = result
         except Exception as e:
             self.log.error("Exception", exc_info=True)
@@ -113,16 +165,18 @@ class SearchView(CustomView):
             response = web.json_response(self.result)
             return response
 
-    @staticmethod
-    async def _search(query, type, offset):
+    async def _search(self, query, type, offset, params):
         result = {
             'success': False,
             'message': 'Кодекс инфой не делится :('
         }
         doc_type = DOC_TYPES.get(type)
-        url = f'{HOST}{SEARCH_URL_BASE}{query}{SEARCH_URL_TYPE}{doc_type.id}{SEARCH_URL_OFFSET}{str(offset)}{SEARCH_URL_SITE}'
-        data_item = await get_data(url, HEADERS)
+        headers = self._get_request_headers(params)
+
+        url = f'{BASE_URL}{SEARCH_URL_BASE}{query}{SEARCH_URL_TYPE}{doc_type.id}{SEARCH_URL_OFFSET}{str(offset)}{SEARCH_URL_SITE}'
+        data_item = await get_data(url, headers)
         if data_item.status == 200:
             srv = SearchSrv()
             result = srv.get_search_results(text=data_item.data, offset=offset, delta=ITEMS_ON_RESULTS)
+            result['headers'] = data_item.headers
         return result

@@ -4,7 +4,7 @@ from shared import DocType
 
 # kodeks api settings
 BASE_URL = r'http://newapi.kodeks.ru'
-HOST = r'http://docs.cntd.ru'
+EXT_URL = r'http://docs.cntd.ru'
 
 SEARCH_URL_BASE = r'/search/intelectual2/q/'
 SEARCH_URL_TYPE = r'/r/'

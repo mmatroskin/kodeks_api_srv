@@ -9,4 +9,3 @@ config.read(config_path)
 
 # request settings
 HEADERS = dict(config.items('headers'))
-pass
