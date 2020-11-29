@@ -5,4 +5,4 @@ class Result:
         self.data = None
         self.url = url
         self.message = 'Error'
-        self.headers = {}
+        self.params = {}

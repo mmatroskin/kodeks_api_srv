@@ -26,10 +26,7 @@ class CustomView(web.View):
     def _get_request_headers(params):
         headers = HEADERS
         if params is not None:
-            headers['User-Agent'] = params.get('User-Agent')
-            cookie = params.get('Cookie')
-            if cookie is not None:
-                headers['Cookie'] = cookie
+            headers['User-Agent'] = params.get('user_agent')
         else:
             ua = user_agent.random
             headers['User-Agent'] = ua
@@ -79,7 +76,7 @@ class DocView(CustomView):
         """
         post: JSON
             query: document info (id, name, etc) - from result of search query
-            headers: User-Agent, Cookie
+            params: {user_agent: string, cookies: dict}
         :return: JSON
         """
         doc_id = ''
@@ -105,7 +102,9 @@ class DocView(CustomView):
             'message': MESSAGE_BAD_QUERY,
         }
         try:
-            headers = self._get_request_headers(input_data.get('headers'))
+            params = input_data.get('params')
+            cookies = None if params is None else params.get('cookies')
+            headers = self._get_request_headers(params)
             query = input_data.get('query')
             doc_id = query.get('id')
             doc_name = query.get('name')
@@ -115,7 +114,7 @@ class DocView(CustomView):
                     result['message'] = document.message
                 else:
                     url = f'{BASE_URL}{DOC_URL_JSON}{doc_id}'
-                    resp = await get_data(url, headers)
+                    resp = await get_data(url, headers, cookies)
                     result['message'] = MESSAGE_404
                     result['status'] = resp.status
                     if resp.status == 200:
@@ -124,7 +123,7 @@ class DocView(CustomView):
                         if html_data:
                             template = join(ROOT_DIR, r'templates/doc_template.html')
                             url = f'{BASE_URL}{DOCTOC_URL}{doc_id}'
-                            resp = await get_data(url, headers)
+                            resp = await get_data(url, headers, cookies)
                             doctoc_data_item = json.loads(resp.data)
                             doctoc_html_data = doctoc_data_item.get('doctoc')
                             document.fill_body(template=template, content=html_data,
@@ -147,7 +146,7 @@ class SearchView(CustomView):
             type: document type,
             query: string,
             offset: offset API parameter, default: 0
-            headers: User-Agent, Cookie
+            params: {user_agent: string, cookies: dict}
         :return: JSON
         """
 
@@ -157,7 +156,7 @@ class SearchView(CustomView):
         doc_type = data.get('type', 'all')
         query = data.get('query')
         offset = data.get('offset')
-        params = data.get('headers')
+        params = data.get('params')
         try:
             if offset is None:
                 offset = 0
@@ -173,17 +172,19 @@ class SearchView(CustomView):
     async def _search(self, query, type, offset, params):
         result = {
             'success': False,
-            'message': MESSAGE_404
+            'message': MESSAGE_404,
+            'params': params
         }
         doc_type = DOC_TYPES.get(type)
+        cookies = None if params is None else params.get('cookies')
         headers = self._get_request_headers(params)
 
         url = f'{BASE_URL}{SEARCH_URL_BASE}{query}{SEARCH_URL_TYPE}{doc_type.id}{SEARCH_URL_OFFSET}' \
             f'{str(offset)}{SEARCH_URL_SITE}'
-        data_item = await get_data(url, headers)
+        data_item = await get_data(url, headers, cookies)
         if data_item.status == 200:
             srv = SearchSrv()
             result = srv.get_search_results(MESSAGE_ERROR, MESSAGE_SUCCESS, text=data_item.data,
                                             offset=offset, delta=ITEMS_ON_RESULTS)
-            result['headers'] = data_item.headers
+            result['params'] = data_item.params
         return result
