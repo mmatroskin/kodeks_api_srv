@@ -22,26 +22,31 @@ class DocItem():
                 base_content = t.read()
             menu_content = data.get('doctoc')
             content = data.get('content')
+            info = 'Действующий' if self.is_active else 'Не действующий'
             ext_url = data.get('ext_url')
 
-            menu_content = menu_content.replace('href="#', 'href="#h_')  # document references
             if ext_url is not None:
                 content = content.replace('/picture/get?', ext_url + '/picture/get?')  # картинки
                 content = content.replace('href="', 'href="' + ext_url)  # внешние ссылки
 
-            info = 'Действующий' if self.is_active else 'Не действующий'
             soup_info = BeautifulSoup(f'<h2>{info}</h2>', 'html.parser')
-            soup_menu = BeautifulSoup(menu_content, 'html.parser')
             soup_content = BeautifulSoup(content, 'html.parser')
             soup = BeautifulSoup(base_content, 'html.parser')
+
             title_container = soup.find(id='title-item')
             info_container = soup.find(id='info-item')
             content_container = soup.find(id='content-item')
-            menu_container = soup.find(id='menu-item')
+
             title_container.insert(0, self.name)
             content_container.insert(0, soup_content)
             info_container.insert(0, soup_info)
-            menu_container.append(soup_menu)
+
+            if menu_content:
+                menu_content = menu_content.replace('href="#', 'href="#h_')  # document references
+                soup_menu = BeautifulSoup(menu_content, 'html.parser')
+                menu_container = soup.find(id='menu-item')
+                menu_container.append(soup_menu)
+
             html = soup.prettify(encoding='utf-8')
             self.html = html.decode()
         except Exception as e:
