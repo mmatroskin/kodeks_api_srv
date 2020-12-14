@@ -14,7 +14,7 @@ class SearchSrv():
         try:
             dom = parseString(data.get('text'))
             node_list = dom.getElementsByTagName('document')
-            is_available = data.get('is_available', True)
+            is_available = data.get('is_available', False)
             ret = self._get_data(node_list, is_available)
             tmp = dom.getElementsByTagName('count')
             count = 0
@@ -40,7 +40,7 @@ class SearchSrv():
             node_name = i.getElementsByTagName('name')[0]
             name = self._get_node_data(node_name, 1)
             node_has_text = i.getElementsByTagName('hasText')[0]
-            has_text= self._get_node_data(node_has_text)
+            has_text = self._get_node_data(node_has_text)
             node_available = i.getElementsByTagName('isAvailable')[0]
             is_available = self._get_node_data(node_available)  # доступность документа
             node_active = i.getElementsByTagName('isActive')[0]

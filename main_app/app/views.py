@@ -6,9 +6,9 @@ from main_app.shared import user_agent
 from main_app.settings import ROOT_DIR, LOG_FILE, EXT_URL, BASE_URL, DOC_URL_JSON, DOCTOC_URL, DOC_TYPES, \
     SEARCH_URL_BASE, SEARCH_URL_TYPE, SEARCH_URL_OFFSET, SEARCH_URL_SITE, ITEMS_ON_RESULTS
 from .config import HEADERS, MESSAGE_SUCCESS, MESSAGE_ERROR, MESSAGE_404, MESSAGE_BAD_QUERY
-from parsers.SearchSrv import SearchSrv
-from parsers.DocItem import DocItem
-from request_srv.request_srv import get_data
+from main_app.parsers.SearchSrv import SearchSrv
+from main_app.parsers.DocItem import DocItem
+from main_app.request_srv.request_srv import get_data
 
 
 class CustomView(web.View):
@@ -79,6 +79,8 @@ class DocView(CustomView):
             params: {user_agent: string, cookies: dict}
         :return: JSON
         """
+
+        result_default = self.result
         doc_id = ''
         try:
             post = await self.request.json()
@@ -86,13 +88,13 @@ class DocView(CustomView):
             data = dict(post)
             if data is not None:
                 doc_id = data.get('query').get('id')
-                result = await self._get_document(data)
-                self.result = result
+                self.result = await self._get_document(data)
         except Exception:
             self.log.error("Exception", exc_info=True)
         finally:
             self.save_log('get_doc', f'id={doc_id}')
             response = web.json_response(self.result)
+            self.result = result_default
             return response
 
     async def _get_document(self, input_data):
@@ -150,6 +152,7 @@ class SearchView(CustomView):
         :return: JSON
         """
 
+        result_default = self.result
         post = await self.request.json()
         headers = dict(self.request.headers)
         data = dict(post)
@@ -160,13 +163,13 @@ class SearchView(CustomView):
         try:
             if offset is None:
                 offset = 0
-            result = await self._search(query, doc_type, offset, params)
-            self.result = result
+            self.result = await self._search(query, doc_type, offset, params)
         except Exception as e:
             self.log.error("Exception", exc_info=True)
         finally:
             self.save_log('search', f'query={query}')
             response = web.json_response(self.result)
+            self.result = result_default
             return response
 
     async def _search(self, query, type, offset, params):
@@ -175,6 +178,8 @@ class SearchView(CustomView):
             'message': MESSAGE_404,
             'params': params
         }
+        if type is None:
+            type = 'all'
         doc_type = DOC_TYPES.get(type)
         cookies = None if params is None else params.get('cookies')
         headers = self._get_request_headers(params)

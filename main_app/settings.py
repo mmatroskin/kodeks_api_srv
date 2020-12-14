@@ -1,5 +1,5 @@
 from pathlib import Path
-from shared import DocType
+from main_app.shared import DocType
 
 
 # kodeks api settings
