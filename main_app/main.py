@@ -25,7 +25,6 @@ def main():
 
     log.info('Start server')
     web.run_app(app, host=SRV_HOST, port=SRV_PORT)
-    log.info('Stop server')
 
 
 if __name__ == '__main__':

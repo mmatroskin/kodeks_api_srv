@@ -32,3 +32,4 @@ ROOT_DIR = Path(__file__).resolve().parent
 CONFIG = 'app.ini'
 REQUESTS_CONFIG = 'requests.ini'
 LOG_FILE = 'log.txt'
+ACTIONS_LOG_FILE = 'actions_log.txt'
