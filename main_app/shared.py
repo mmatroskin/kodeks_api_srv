@@ -1,5 +1,5 @@
 from collections import namedtuple
-from main_app.user_agent import UserAgentItem
+from user_agent import UserAgentItem
 
 
 DocType = namedtuple('DocType', 'id, text')

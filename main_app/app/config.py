@@ -1,6 +1,6 @@
 import configparser
 from os.path import join
-from main_app.settings import ROOT_DIR, REQUESTS_CONFIG, CONFIG
+from settings import ROOT_DIR, REQUESTS_CONFIG, CONFIG
 
 
 config = configparser.ConfigParser()

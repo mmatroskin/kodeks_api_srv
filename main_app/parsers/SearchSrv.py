@@ -1,7 +1,7 @@
 from os.path import join
 from xml.dom.minidom import parseString
-from main_app.app_log import get_logger
-from main_app.settings import ROOT_DIR, LOG_FILE
+from app_log import get_logger
+from settings import ROOT_DIR, LOG_FILE
 
 
 class SearchSrv():
@@ -14,8 +14,8 @@ class SearchSrv():
         try:
             dom = parseString(data.get('text'))
             node_list = dom.getElementsByTagName('document')
-            is_available = data.get('is_available', False)
-            ret = self._get_data(node_list, is_available)
+            is_available_only = data.get('is_available', False)
+            ret = self._get_data(node_list, is_available_only)
             tmp = dom.getElementsByTagName('count')
             count = 0
             if len(tmp) > 0:

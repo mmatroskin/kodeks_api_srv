@@ -1,4 +1,4 @@
-from main_app.app.views import SearchView, DocView, InfoView
+from app.views import SearchView, DocView, InfoView
 
 
 routes = [

@@ -1,10 +1,10 @@
 import configparser
 from aiohttp import web
 from os.path import join
-from main_app.settings import ROOT_DIR, LOG_FILE, CONFIG
-from main_app.app_log import get_logger
-from main_app.routes import routes
-from main_app.shared import user_agent
+from settings import ROOT_DIR, LOG_FILE, CONFIG
+from app_log import get_logger
+from routes import routes
+from shared import user_agent
 
 
 def main():
@@ -25,7 +25,6 @@ def main():
 
     log.info('Start server')
     web.run_app(app, host=SRV_HOST, port=SRV_PORT)
-    log.info('Stop server')
 
 
 if __name__ == '__main__':
