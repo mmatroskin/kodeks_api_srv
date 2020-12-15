@@ -1,20 +1,162 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
     <title id="title-item"></title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <style>
+        body {
+            font-family: Verdana,sans-serif;
+            font-size: 15px;
+            line-height: 1.5;
+            margin: 0px;
+        }
 
+        .menu-bar {
+            top: 0;
+            position: fixed;
+            width: 100%;
+            z-index: 1;
+            background-color: white;
+            color: #404040;
+        }
+
+        .menu-head {
+            z-index: 2;
+            height: 64px;
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            box-shadow: 0 2px 5px 0 rgba(0,0,0,0.16),0 2px 10px 0 rgba(0,0,0,0.12);
+            padding: 0px 16px;
+        }
+
+        .bar-item {
+            width: auto;
+            display: block;
+            outline: 0;
+            padding: 8px 8px;
+        }
+
+        .bar-item i {
+            scale: 2;
+            padding-top: 8px;
+        }
+
+        .bar-item h2 {
+            margin: 8px 0 0 0;
+        }
+
+        .button {
+            border: none;
+            overflow: hidden;
+            text-decoration: none;
+            color: inherit;
+            background-color: inherit;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .bar-container {
+            width: 100%;
+            max-height: calc((100vh - 64px)*0.7);
+            box-shadow: 0 2px 5px 0 rgba(0,0,0,0.16),0 2px 10px 0 rgba(0,0,0,0.12);
+            padding: 24px 16px;
+
+        }
+
+        .bar-block {
+            width: 100%;
+            height: inherit;
+            max-height: inherit;
+            font-weight: bold;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .bar-block ul {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .bar-block a {
+            width: 100%;
+            display: block;
+            padding: 8px 8px;
+            text-align: left;
+            text-decoration: none;
+            color: inherit;
+            background-color: white;
+            cursor: pointer;
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        .hide {
+            display: none;
+        }
+
+        .show {
+            display: block;
+        }
+
+        .content {
+            padding: 72px 16px 24px 16px;
+        }
+
+        .padding-72 {
+            padding-top: 72px;
+        }
     </style>
 </head>
 <body>
     <div class="menu-bar">
-        <div id="info-item"></div>
-        <div id="menu-item"></div>
+        <div class="menu-head">
+            <a href="#" class="bar-item button">
+                <i class="material-icons">home</i>
+            </a>
+            <div id="info-item" class="bar-item"></div>
+            <a class="bar-item button" href="javascript:void(0);" onclick="ToggleNav()">
+                <i class="material-icons">menu</i>
+            </a>
+        </div>
+        <div  id="menu-container" class="bar-container hide">
+            <div id="menu-body" class="bar-block"></div>
+        </div>
     </div>
     <div id="content-item" class="content"></div>
     <script>
+        function ToggleNav() {
+            let elem = document.getElementById('menu-container');
+            elem.classList.toggle('show');
+        }
 
+        function Init() {
+            let items = document.querySelectorAll('div#menu-body > ul > li');
+            let headers = document.querySelectorAll('div#content-item > h1, div#content-item > h2 , div#content-item > h3');
+            try{
+                for (item of items) {
+                    item.addEventListener('click', ToggleNav);
+                }
+                for (item of headers) {
+                    item.classList.add('padding-72');
+                }
+            } catch (e) {
+                console.log(e);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            Init();
+        })
     </script>
 </body>
 </html>

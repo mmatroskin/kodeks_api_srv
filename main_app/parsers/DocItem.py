@@ -44,7 +44,7 @@ class DocItem():
             if menu_content:
                 menu_content = menu_content.replace('href="#', 'href="#h_')  # document references
                 soup_menu = BeautifulSoup(menu_content, 'html.parser')
-                menu_container = soup.find(id='menu-item')
+                menu_container = soup.find(id='menu-body')
                 menu_container.append(soup_menu)
 
             html = soup.prettify(encoding='utf-8')
