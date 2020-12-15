@@ -1,7 +1,7 @@
 from bs4 import BeautifulSoup
 from os.path import join
-from main_app.app_log import get_logger
-from main_app.settings import ROOT_DIR, LOG_FILE
+from app_log import get_logger
+from settings import ROOT_DIR, LOG_FILE
 
 
 class DocItem():

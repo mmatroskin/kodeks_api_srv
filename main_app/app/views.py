@@ -1,10 +1,11 @@
 from os.path import join
 import json
+import gc
 from aiohttp import web
-from main_app.app_log import get_logger
-from main_app.shared import user_agent
-from main_app.settings import ROOT_DIR, LOG_FILE, EXT_URL, BASE_URL, DOC_URL_JSON, DOCTOC_URL, DOC_TYPES, \
-    SEARCH_URL_BASE, SEARCH_URL_TYPE, SEARCH_URL_OFFSET, SEARCH_URL_SITE, ITEMS_ON_RESULTS
+from app_log import get_logger
+from shared import user_agent
+from settings import ROOT_DIR, LOG_FILE, EXT_URL, BASE_URL, DOC_URL_JSON, DOCTOC_URL, DOC_TYPES, \
+    SEARCH_URL_BASE, SEARCH_URL_TYPE, SEARCH_URL_OFFSET, SEARCH_URL_SITE, ITEMS_ON_RESULTS, ACTIONS_LOG_FILE
 from .config import HEADERS, MESSAGE_SUCCESS, MESSAGE_ERROR, MESSAGE_404, MESSAGE_BAD_QUERY
 from parsers.SearchSrv import SearchSrv
 from parsers.DocItem import DocItem
@@ -16,6 +17,7 @@ class CustomView(web.View):
     def __init__(self, *args, **kwargs):
         super(web.View, self).__init__(*args, **kwargs)
         self.log = get_logger(join(ROOT_DIR, LOG_FILE), __name__)
+        self.action_log = get_logger(join(ROOT_DIR, ACTIONS_LOG_FILE), 'actions')
         self.result = {
             'success': False,
             'message': MESSAGE_BAD_QUERY,
@@ -34,7 +36,7 @@ class CustomView(web.View):
 
     def save_log(self, action, info=None):
         success = MESSAGE_SUCCESS if self.result['success'] else MESSAGE_ERROR
-        self.log.info(f'action: {action}, info: {info}, success: {success}')
+        self.action_log.info(f'action: {action}, info: {info}, success: {success}')
 
 
 class InfoView(CustomView):
@@ -79,6 +81,8 @@ class DocView(CustomView):
             params: {user_agent: string, cookies: dict}
         :return: JSON
         """
+
+        result_default = self.result
         doc_id = ''
         try:
             post = await self.request.json()
@@ -86,13 +90,14 @@ class DocView(CustomView):
             data = dict(post)
             if data is not None:
                 doc_id = data.get('query').get('id')
-                result = await self._get_document(data)
-                self.result = result
+                self.result = await self._get_document(data)
         except Exception:
             self.log.error("Exception", exc_info=True)
         finally:
             self.save_log('get_doc', f'id={doc_id}')
             response = web.json_response(self.result)
+            self.result = result_default
+            gc.collect()
             return response
 
     async def _get_document(self, input_data):
@@ -110,7 +115,7 @@ class DocView(CustomView):
             doc_name = query.get('name')
             if doc_id is not None:
                 document = DocItem(query)
-                if not query.get('is_available'):
+                if not query.get('has_text'):
                     result['message'] = document.message
                 else:
                     url = f'{BASE_URL}{DOC_URL_JSON}{doc_id}'
@@ -123,14 +128,22 @@ class DocView(CustomView):
                         if html_data:
                             template = join(ROOT_DIR, r'templates/doc_template.html')
                             url = f'{BASE_URL}{DOCTOC_URL}{doc_id}'
-                            resp = await get_data(url, headers, cookies)
-                            doctoc_data_item = json.loads(resp.data)
+                            try:
+                                resp = await get_data(url, headers, cookies)
+                                doctoc_data_item = json.loads(resp.data)
+                            except Exception as ex:
+                                self.log.error("Exception", exc_info=True)
+                                doctoc_data_item = {}
                             doctoc_html_data = doctoc_data_item.get('doctoc')
                             document.fill_body(template=template, content=html_data,
                                                doctoc=doctoc_html_data, ext_url=EXT_URL)
                         result['success'] = True
                         result['message'] = MESSAGE_SUCCESS
                         result['data'] = {'id': doc_id, 'name': doc_name, 'html': document.html}
+                try:
+                    del document
+                except Exception:
+                    pass
         except Exception as e:
             result['message'] = str(e)
             self.log.error("Exception", exc_info=True)
@@ -150,6 +163,7 @@ class SearchView(CustomView):
         :return: JSON
         """
 
+        result_default = self.result
         post = await self.request.json()
         headers = dict(self.request.headers)
         data = dict(post)
@@ -160,13 +174,14 @@ class SearchView(CustomView):
         try:
             if offset is None:
                 offset = 0
-            result = await self._search(query, doc_type, offset, params)
-            self.result = result
+            self.result = await self._search(query, doc_type, offset, params)
         except Exception as e:
             self.log.error("Exception", exc_info=True)
         finally:
             self.save_log('search', f'query={query}')
             response = web.json_response(self.result)
+            self.result = result_default
+            gc.collect()
             return response
 
     async def _search(self, query, type, offset, params):
@@ -175,6 +190,8 @@ class SearchView(CustomView):
             'message': MESSAGE_404,
             'params': params
         }
+        if type is None:
+            type = 'all'
         doc_type = DOC_TYPES.get(type)
         cookies = None if params is None else params.get('cookies')
         headers = self._get_request_headers(params)
@@ -187,4 +204,5 @@ class SearchView(CustomView):
             result = srv.get_search_results(MESSAGE_ERROR, MESSAGE_SUCCESS, text=data_item.data,
                                             offset=offset, delta=ITEMS_ON_RESULTS)
             result['params'] = data_item.params
+
         return result
