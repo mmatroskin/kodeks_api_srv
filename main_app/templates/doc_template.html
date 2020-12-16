@@ -23,13 +23,16 @@
         }
 
         .menu-head {
+            position: fixed;
             z-index: 2;
             height: 64px;
+            width: calc(100% - 32px);
             display: flex;
             flex-direction: row;
             justify-content: space-between;
             box-shadow: 0 2px 5px 0 rgba(0,0,0,0.16),0 2px 10px 0 rgba(0,0,0,0.12);
             padding: 0px 16px;
+            background-color: white;
         }
 
         .bar-item {
@@ -59,15 +62,13 @@
         }
 
         .bar-container {
-            width: 100%;
             max-height: calc((100vh - 64px)*0.7);
             box-shadow: 0 2px 5px 0 rgba(0,0,0,0.16),0 2px 10px 0 rgba(0,0,0,0.12);
-            padding: 24px 16px;
-
+            padding: 80px 0 24px 0;
         }
 
         .bar-block {
-            width: 100%;
+            padding: 0px 16px;
             height: inherit;
             max-height: inherit;
             font-weight: bold;
@@ -120,11 +121,11 @@
 <body>
     <div class="menu-bar">
         <div class="menu-head">
-            <a href="#" class="bar-item button">
+            <a href="#" class="bar-item button" onclick="ToggleNav(null, true)">
                 <i class="material-icons">home</i>
             </a>
             <div id="info-item" class="bar-item"></div>
-            <a class="bar-item button" href="javascript:void(0);" onclick="ToggleNav()">
+            <a class="bar-item button" href="javascript:void(0);" onclick="ToggleNav(null)">
                 <i class="material-icons">menu</i>
             </a>
         </div>
@@ -134,14 +135,18 @@
     </div>
     <div id="content-item" class="content"></div>
     <script>
-        function ToggleNav() {
+        function ToggleNav(e, hide=false) {
             let elem = document.getElementById('menu-container');
-            elem.classList.toggle('show');
+            if (hide) {
+                elem.classList.remove('show');
+            } else {
+                elem.classList.toggle('show');
+            }
         }
 
         function Init() {
             let items = document.querySelectorAll('div#menu-body > ul > li');
-            let headers = document.querySelectorAll('div#content-item > h1, div#content-item > h2 , div#content-item > h3');
+            let headers = document.querySelectorAll('div#content-item > h1, div#content-item > h2, div#content-item > h3, div#content-item > h4, div#content-item > h5, div#content-item > h6');
             try{
                 for (item of items) {
                     item.addEventListener('click', ToggleNav);

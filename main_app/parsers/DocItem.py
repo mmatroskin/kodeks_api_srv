@@ -12,7 +12,7 @@ class DocItem():
         self.name = data.get('name')
         self.is_available = data.get('is_available')
         self.is_active = data.get('is_active')
-        self.message = 'Текст документа недоступен'
+        self.message = 'Документ недоступен'
         self.html = None
 
     def fill_body(self, **data):
@@ -43,6 +43,7 @@ class DocItem():
 
             if menu_content:
                 menu_content = menu_content.replace('href="#', 'href="#h_')  # document references
+                menu_content = menu_content.replace('href="#h_h_', 'href="#h_')  # remove doubles in some docs
                 soup_menu = BeautifulSoup(menu_content, 'html.parser')
                 menu_container = soup.find(id='menu-body')
                 menu_container.append(soup_menu)
