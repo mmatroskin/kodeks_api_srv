@@ -9,8 +9,6 @@ pipelines:
     - parallel:
         - step:
             name: 'Test'
-            caches:
-              - pip
             script:
               - echo "Your build and test goes here..."
               # - cd kodeks_api_srv
