@@ -2,26 +2,27 @@
 # Use a skeleton to build, test and deploy using manual and parallel steps
 # -----
 # You can specify a custom docker image from Docker Hub as your build environment.
-image: Python 3.8
+image: atlassian/default-image:2
 
 pipelines:
   default:
-    - step:
-        name: 'Test'
-        caches:
-          - pip
-        script:
-          - echo "Your build and test goes here..."
-          # - cd kodeks_api_srv
-          - pip install -r requirements.txt
-          - ./main_app/main.py
-    - step:
-        name: 'Build'
-        script:
-          - echo "Your build goes here..."
-          - git archive --format=tar.gz master -o kodeks-api-srv.tar.gz
-        artifacts:
-          - ./kodeks-api-srv.tar.gz
+    - parallel:
+        - step:
+            name: 'Test'
+            caches:
+              - pip
+            script:
+              - echo "Your build and test goes here..."
+              # - cd kodeks_api_srv
+              - pip install -r requirements.txt
+              - ./main_app/main.py
+        - step:
+            name: 'Build'
+            script:
+              - echo "Your build goes here..."
+              - git archive --format=tar.gz master -o kodeks-api-srv.tar.gz
+            artifacts:
+              - ./kodeks-api-srv.tar.gz
 
   # The following deployment steps will be executed for each pipeline run. To configure your steps and conditionally deploy see https://support.atlassian.com/bitbucket-cloud/docs/configure-bitbucket-pipelinesyml/
     - step:
