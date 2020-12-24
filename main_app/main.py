@@ -15,9 +15,9 @@ def main():
     ON_HEROKU = os.environ.get('ON_HEROKU')
     
     SRV_HOST = config.get("server", "host")
-    SRV_PORT = config.get("server", "port")
+    SRV_PORT = int(config.get("server", "port"))
     if ON_HEROKU:
-        SRV_PORT = int(os.environ.get("PORT", SRV_PORT))
+        SRV_PORT = os.environ.get("PORT", SRV_PORT)
 
     user_agent.update()
 
