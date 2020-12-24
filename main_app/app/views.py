@@ -21,7 +21,8 @@ class CustomView(web.View):
         self.result = {
             'success': False,
             'message': MESSAGE_BAD_QUERY,
-            'data': None
+            'data': None,
+            'data_len': 0
         }
 
     @staticmethod
@@ -94,7 +95,8 @@ class DocView(CustomView):
         except Exception:
             self.log.error("Exception", exc_info=True)
         finally:
-            self.save_log('get_doc', f'id={doc_id}')
+            result_data_len = self.result.get('data_len')
+            self.save_log('get_doc', f'id={doc_id} [{str(result_data_len)}b]')
             response = web.json_response(self.result)
             self.result = result_default
             gc.collect()
@@ -105,6 +107,7 @@ class DocView(CustomView):
             'status': None,
             'success': False,
             'message': MESSAGE_BAD_QUERY,
+            'data_len': 0,
         }
         try:
             params = input_data.get('params')
@@ -115,9 +118,8 @@ class DocView(CustomView):
             doc_name = query.get('name')
             if doc_id is not None:
                 document = DocItem(query)
-                if not query.get('has_text'):
-                    result['message'] = document.message
-                else:
+                result['message'] = document.message
+                if query.get('has_text'):
                     url = f'{BASE_URL}{DOC_URL_JSON}{doc_id}'
                     resp = await get_data(url, headers, cookies)
                     result['message'] = MESSAGE_404
@@ -140,6 +142,8 @@ class DocView(CustomView):
                         result['success'] = True
                         result['message'] = MESSAGE_SUCCESS
                         result['data'] = {'id': doc_id, 'name': doc_name, 'html': document.html}
+                        if document.html:
+                            result['data_len'] = len(document.html)
                 try:
                     del document
                 except Exception:
