@@ -10,7 +10,7 @@ pipelines:
         name: 'Test'
         script:
           - echo "Your build and test goes here..."
-          - cd kodeks-api-srv
+          - cd kodeks_api_srv
           - pip install -r requirements.txt
           - ./main_app/main.py
     - step:
@@ -19,7 +19,7 @@ pipelines:
           - echo "Your build goes here..."
           - git archive --format=tar.gz master -o kodeks-api-srv.tar.gz
         artifacts:
-          - kodeks-api-srv/kodeks-api-srv.tar.gz
+          - kodeks_api_srv/kodeks-api-srv.tar.gz
 
   # The following deployment steps will be executed for each pipeline run. To configure your steps and conditionally deploy see https://support.atlassian.com/bitbucket-cloud/docs/configure-bitbucket-pipelinesyml/
     - step:
@@ -33,4 +33,4 @@ pipelines:
             variables:
               HEROKU_API_KEY: $HEROKU_API_KEY
               HEROKU_APP_NAME: $HEROKU_APP_NAME
-              ZIP_FILE: kodeks-api-srv/kodeks-api-srv.tar.gz
+              ZIP_FILE: kodeks_api_srv/kodeks-api-srv.tar.gz
