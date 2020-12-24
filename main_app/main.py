@@ -18,7 +18,7 @@ def main():
     SRV_PORT = config.get("server", "port")
     if ON_HEROKU:
         # get the heroku port 
-        SRV_PORT = int(os.environ.get("PORT", SRV_PORT))  # as per OP comments default is SRV_PORT
+        SRV_PORT = int(environ.get("PORT", SRV_PORT))  # as per OP comments default is SRV_PORT
 
     user_agent.update()
 
