@@ -19,7 +19,7 @@ pipelines:
         name: 'Build'
         script:
           - echo "Your build goes here..."
-          - git archive --format=tar.gz master -o kodeks-api-srv.tar.gz
+          - git archive --format=tar.gz release -o kodeks-api-srv.tar.gz
         artifacts:
           - kodeks-api-srv.tar.gz
 
