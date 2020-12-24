@@ -2,12 +2,14 @@
 # Use a skeleton to build, test and deploy using manual and parallel steps
 # -----
 # You can specify a custom docker image from Docker Hub as your build environment.
-image: Python 3.7.4
+image: Python 3.8
 
 pipelines:
   default:
     - step:
         name: 'Test'
+        caches:
+          - pip
         script:
           - echo "Your build and test goes here..."
           - cd kodeks_api_srv
@@ -25,11 +27,12 @@ pipelines:
     - step:
         name: 'Deployment to Production'
         deployment: production
+        trigger: manual
         caches:
           - pip
         script:
           - echo "Your deployment to production script goes here..."
-          - pipe: atlassian/heroku-deploy:0.1.1
+          - pipe: atlassian/heroku-deploy:1.2.1
             variables:
               HEROKU_API_KEY: $HEROKU_API_KEY
               HEROKU_APP_NAME: $HEROKU_APP_NAME
