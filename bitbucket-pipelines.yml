@@ -21,7 +21,7 @@ pipelines:
           - echo "Your build goes here..."
           - git archive --format=tar.gz master -o kodeks-api-srv.tar.gz
         artifacts:
-          - ./kodeks-api-srv.tar.gz
+          - kodeks-api-srv.tar.gz
 
   # The following deployment steps will be executed for each pipeline run. To configure your steps and conditionally deploy see https://support.atlassian.com/bitbucket-cloud/docs/configure-bitbucket-pipelinesyml/
     - step:
@@ -36,4 +36,4 @@ pipelines:
             variables:
               HEROKU_API_KEY: $HEROKU_API_KEY
               HEROKU_APP_NAME: $HEROKU_APP_NAME
-              ZIP_FILE: ./kodeks-api-srv.tar.gz
+              ZIP_FILE: kodeks-api-srv.tar.gz
