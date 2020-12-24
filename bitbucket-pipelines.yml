@@ -1,0 +1,36 @@
+# This is an example Starter pipeline configuration
+# Use a skeleton to build, test and deploy using manual and parallel steps
+# -----
+# You can specify a custom docker image from Docker Hub as your build environment.
+image: Python 3.7.4
+
+pipelines:
+  default:
+    - step:
+        name: 'Test'
+        script:
+          - echo "Your build and test goes here..."
+          - cd kodeks-api-srv
+          - pip install -r requirements.txt
+          - ./main_app/main.py
+    - step:
+        name: 'Build'
+        script:
+          - echo "Your build goes here..."
+          - git archive --format=tar.gz master -o kodeks-api-srv.tar.gz
+        artifacts:
+          - kodeks-api-srv/kodeks-api-srv.tar.gz
+
+  # The following deployment steps will be executed for each pipeline run. To configure your steps and conditionally deploy see https://support.atlassian.com/bitbucket-cloud/docs/configure-bitbucket-pipelinesyml/
+    - step:
+        name: 'Deployment to Production'
+        deployment: production
+        caches:
+          - pip
+        script:
+          - echo "Your deployment to production script goes here..."
+          - pipe: atlassian/heroku-deploy:0.1.1
+            variables:
+              HEROKU_API_KEY: $HEROKU_API_KEY
+              HEROKU_APP_NAME: $HEROKU_APP_NAME
+              ZIP_FILE: kodeks-api-srv/kodeks-api-srv.tar.gz
