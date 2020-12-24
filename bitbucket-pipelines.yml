@@ -7,21 +7,21 @@ image: python:3.8
 
 pipelines:
   default:
-    - parallel:
-        - step:
-            name: 'Test'
-            script:
-              - echo "Your build and test goes here..."
-              # - cd kodeks_api_srv
-              - pip install -r requirements.txt
-              - ./main_app/main.py
-        - step:
-            name: 'Build'
-            script:
-              - echo "Your build goes here..."
-              - git archive --format=tar.gz master -o kodeks-api-srv.tar.gz
-            artifacts:
-              - ./kodeks-api-srv.tar.gz
+    - step:
+        name: 'Test'
+        script:
+          - echo "Your build and test goes here..."
+          - ls
+          # - cd kodeks_api_srv
+          - python3 pip install -r requirements.txt
+          - ./main_app/main.py
+    - step:
+        name: 'Build'
+        script:
+          - echo "Your build goes here..."
+          - git archive --format=tar.gz master -o kodeks-api-srv.tar.gz
+        artifacts:
+          - ./kodeks-api-srv.tar.gz
 
   # The following deployment steps will be executed for each pipeline run. To configure your steps and conditionally deploy see https://support.atlassian.com/bitbucket-cloud/docs/configure-bitbucket-pipelinesyml/
     - step:
